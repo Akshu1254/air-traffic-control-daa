@@ -1,217 +1,352 @@
-const form = document.getElementById("flight-form");
-const message = document.getElementById("message");
-const table = document.getElementById("flight-table");
-const landedTable = document.getElementById("landed-table");
-const totalDisplay = document.getElementById("total-flights");
-const waitingDisplay = document.getElementById("waiting-flights");
-const landedDisplay = document.getElementById("landed-flights");
-const eventList = document.getElementById("event-list");
-const landButton = document.getElementById("land-button");
+/* ==========================================
+   SKYCONTROL - AIR TRAFFIC CONTROL
+   GitHub Pages compatible simulation
+   ========================================== */
 
-const radar = document.getElementById("radar-screen");
-const planeLayer = document.getElementById("radar-planes");
-const radarCount = document.getElementById("radar-count");
-const radarSelection = document.getElementById("radar-selection");
+const STORAGE_KEY = "skycontrol_flights_v1";
+const EVENT_KEY = "skycontrol_events_v1";
 
-const radarPositions = new Map();
-let radarFlights = [];
+const $ = (id) => document.getElementById(id);
+
+let flights = [];
+let events = [];
 let selectedFlightId = null;
+let nextId = 1;
+
+const demoFlights = [
+    { name: "Air India AI101", destination: "Delhi", fuel: 65 },
+    { name: "IndiGo 6E202", destination: "Mumbai", fuel: 25 },
+    { name: "SpiceJet SG303", destination: "Chandigarh", fuel: 48 },
+    { name: "Vistara UK404", destination: "Bengaluru", fuel: 80 },
+    { name: "IndiGo 6E505", destination: "Amritsar", fuel: 15 }
+];
+
+function calculatePriority(fuel) {
+    // Lower number = higher simulated landing priority
+    return 101 - Number(fuel);
+}
+
+function saveData() {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(flights));
+        localStorage.setItem(EVENT_KEY, JSON.stringify(events));
+    } catch (error) {
+        console.warn("Could not save simulation data.", error);
+    }
+}
+
+function addEvent(message) {
+    const time = new Date().toLocaleTimeString();
+    events.unshift(`${time} — ${message}`);
+    events = events.slice(0, 30);
+
+    saveData();
+    renderEvents();
+}
 
 function escapeHTML(value) {
-    return String(value).replace(/[&<>"']/g, character => ({
+    return String(value).replace(/[&<>"']/g, (char) => ({
         "&": "&amp;",
         "<": "&lt;",
         ">": "&gt;",
         '"': "&quot;",
         "'": "&#39;"
-    })[character]);
+    })[char]);
 }
 
-async function apiRequest(url, options = {}) {
-    const response = await fetch(url, options);
-    const result = await response.json();
-
-    if (!response.ok) {
-        throw new Error(result.error || "Request failed");
-    }
-
-    return result;
-}
-
-async function loadFlights() {
+function initialiseFlights() {
     try {
-        const data = await apiRequest("/api/flights");
+        const savedFlights = localStorage.getItem(STORAGE_KEY);
+        const savedEvents = localStorage.getItem(EVENT_KEY);
 
-        totalDisplay.textContent = data.total;
-        waitingDisplay.textContent = data.waiting;
-        landedDisplay.textContent = data.landed_count;
-
-        if (data.flights.length === 0) {
-            table.innerHTML =
-                '<tr><td colspan="6">No flights in the queue.</td></tr>';
+        if (savedFlights !== null) {
+            flights = JSON.parse(savedFlights);
         } else {
-            table.innerHTML = data.flights.map(flight => `
-                <tr>
-                    <td>${escapeHTML(flight.id)}</td>
-                    <td>${escapeHTML(flight.name)}</td>
-                    <td>${escapeHTML(flight.destination)}</td>
-                    <td>${flight.fuel}%</td>
-                    <td>${flight.priority === 1 ? "EMERGENCY" :
-                         flight.priority === 2 ? "HIGH" : "NORMAL"}</td>
-                    <td>${escapeHTML(flight.status)}</td>
-                </tr>
-            `).join("");
-        }
-
-        if (data.landed.length === 0) {
-            landedTable.innerHTML =
-                '<tr><td colspan="4">No landings yet.</td></tr>';
-        } else {
-            landedTable.innerHTML = data.landed.map(flight => `
-                <tr>
-                    <td>${escapeHTML(flight.id)}</td>
-                    <td>${escapeHTML(flight.name)}</td>
-                    <td>${escapeHTML(flight.destination)}</td>
-                    <td>${escapeHTML(flight.status)}</td>
-                </tr>
-            `).join("");
-        }
-
-        eventList.innerHTML = data.events.length
-            ? data.events.map(event => `
-                <li><strong>${escapeHTML(event.time)}</strong>
-                — ${escapeHTML(event.message)}</li>
-            `).join("")
-            : "<li>No events yet.</li>";
-
-        // Only waiting flights appear on this simulated radar.
-        radarFlights = data.flights;
-        updateRadarMarkers();
-    } catch (error) {
-        message.textContent = "Unable to load flights: " + error.message;
-    }
-}
-
-form.addEventListener("submit", async event => {
-    event.preventDefault();
-
-    const flightData = {
-        name: document.getElementById("flight-name").value.trim(),
-        destination: document.getElementById("destination").value.trim(),
-        fuel: Number(document.getElementById("fuel").value)
-    };
-
-    try {
-        const result = await apiRequest("/api/add-flight", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(flightData)
-        });
-
-        message.textContent = result.message;
-        form.reset();
-        document.getElementById("fuel").value = 65;
-
-        await loadFlights();
-    } catch (error) {
-        message.textContent = error.message;
-    }
-});
-
-landButton.addEventListener("click", async () => {
-    try {
-        const result = await apiRequest("/api/land", {
-            method: "POST"
-        });
-
-        message.textContent = result.message;
-        await loadFlights();
-    } catch (error) {
-        message.textContent = error.message;
-    }
-});
-
-function updateRadarMarkers() {
-    const activeIds = new Set(radarFlights.map(flight => flight.id));
-
-    for (const [id, marker] of planeMarkers) {
-        if (!activeIds.has(id)) {
-            marker.remove();
-            planeMarkers.delete(id);
-            radarPositions.delete(id);
-        }
-    }
-
-    radarFlights.forEach(flight => {
-        if (!radarPositions.has(flight.id)) {
-            radarPositions.set(flight.id, {
+            flights = demoFlights.map((flight, index) => ({
+                id: index + 1,
+                name: flight.name,
+                destination: flight.destination,
+                fuel: flight.fuel,
+                status: "Waiting",
+                priority: calculatePriority(flight.fuel),
                 x: 15 + Math.random() * 70,
-                y: 15 + Math.random() * 70,
-                dx: (Math.random() - 0.5) * 0.18,
-                dy: (Math.random() - 0.5) * 0.18
-            });
+                y: 15 + Math.random() * 70
+            }));
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(flights));
         }
 
-        if (!planeMarkers.has(flight.id)) {
-            const marker = document.createElement("button");
-            marker.className = "radar-plane";
-            marker.type = "button";
-            marker.textContent = "✈";
-            marker.title = flight.id;
-            marker.setAttribute("aria-label", "Select " + flight.id);
+        if (!Array.isArray(flights)) flights = [];
+        flights = flights.filter(f =>
+            f && Number.isFinite(Number(f.id)) &&
+            typeof f.name === "string" &&
+            typeof f.destination === "string" &&
+            Number.isFinite(Number(f.fuel)) &&
+            (f.status === "Waiting" || f.status === "Landed")
+        );
 
-            marker.addEventListener("click", () => {
-                selectedFlightId = flight.id;
-                showSelectedFlight();
-            });
+        events = savedEvents ? JSON.parse(savedEvents) : [];
+        if (!Array.isArray(events)) events = [];
+    } catch (error) {
+        flights = demoFlights.map((flight, index) => ({
+            id: index + 1,
+            ...flight,
+            status: "Waiting",
+            priority: calculatePriority(flight.fuel),
+            x: 15 + Math.random() * 70,
+            y: 15 + Math.random() * 70
+        }));
+        events = [];
+    }
 
-            planeLayer.appendChild(marker);
-            planeMarkers.set(flight.id, marker);
-        }
-    });
+    nextId = flights.reduce(
+        (max, flight) => Math.max(max, Number(flight.id) || 0), 0
+    ) + 1;
 
-    radarCount.textContent = radarFlights.length;
-    showSelectedFlight();
+    if (events.length === 0) {
+        events.unshift("SkyControl simulation initialized.");
+        saveData();
+    }
 }
 
-const planeMarkers = new Map();
+function renderStats() {
+    const waiting = flights.filter(f => f.status === "Waiting").length;
+    const landed = flights.filter(f => f.status === "Landed").length;
 
-function showSelectedFlight() {
-    const flight = radarFlights.find(item => item.id === selectedFlightId);
+    $("total-flights").textContent = flights.length;
+    $("waiting-flights").textContent = waiting;
+    $("landed-flights").textContent = landed;
+    $("radar-count").textContent = waiting;
+}
 
-    if (!flight) {
-        radarSelection.textContent =
-            radarFlights.length
-                ? "Select an aircraft marker to view details."
-                : "No waiting aircraft on radar.";
+function renderFlightTable() {
+    const tbody = $("flight-table");
+
+    const waitingFlights = flights
+        .filter(f => f.status === "Waiting")
+        .sort((a, b) =>
+            a.priority - b.priority || a.id - b.id
+        );
+
+    if (waitingFlights.length === 0) {
+        tbody.innerHTML =
+            '<tr><td colspan="6">No flights waiting for landing.</td></tr>';
         return;
     }
 
-    radarSelection.textContent =
-        `${flight.id} | ${flight.destination} | Fuel ${flight.fuel}% | ` +
-        `Priority ${flight.priority}`;
+    tbody.innerHTML = waitingFlights.map(flight => `
+        <tr>
+            <td>#${flight.id}</td>
+            <td>${escapeHTML(flight.name)}</td>
+            <td>${escapeHTML(flight.destination)}</td>
+            <td>${Number(flight.fuel)}%</td>
+            <td>${flight.priority}</td>
+            <td><span class="status-waiting">Waiting</span></td>
+        </tr>
+    `).join("");
 }
 
-function animateRadar() {
-    radarFlights.forEach(flight => {
-        const position = radarPositions.get(flight.id);
-        const marker = planeMarkers.get(flight.id);
+function renderLandedTable() {
+    const tbody = $("landed-table");
 
-        if (!position || !marker) return;
+    const landedFlights = flights
+        .filter(f => f.status === "Landed")
+        .sort((a, b) => (b.landedAt || 0) - (a.landedAt || 0))
+        .slice(0, 10);
 
-        position.x += position.dx;
-        position.y += position.dy;
+    if (landedFlights.length === 0) {
+        tbody.innerHTML =
+            '<tr><td colspan="4">No landings yet.</td></tr>';
+        return;
+    }
 
-        if (position.x < 10 || position.x > 90) position.dx *= -1;
-        if (position.y < 10 || position.y > 90) position.dy *= -1;
+    tbody.innerHTML = landedFlights.map(flight => `
+        <tr>
+            <td>#${flight.id}</td>
+            <td>${escapeHTML(flight.name)}</td>
+            <td>${escapeHTML(flight.destination)}</td>
+            <td><span class="status-landed">Landed</span></td>
+        </tr>
+    `).join("");
+}
 
-        marker.style.left = position.x + "%";
-        marker.style.top = position.y + "%";
+function renderEvents() {
+    const list = $("event-list");
+    if (!list) return;
+
+    if (events.length === 0) {
+        list.innerHTML = "<li>Waiting for events...</li>";
+        return;
+    }
+
+    list.innerHTML = events.slice(0, 12)
+        .map(event => `<li>${escapeHTML(event)}</li>`)
+        .join("");
+}
+
+function renderRadar() {
+    const radar = $("radar-planes");
+    if (!radar) return;
+
+    const activeFlights = flights.filter(f => f.status === "Waiting");
+
+    radar.innerHTML = activeFlights.map(flight => {
+        const x = Number.isFinite(flight.x) ? flight.x : 50;
+        const y = Number.isFinite(flight.y) ? flight.y : 50;
+
+        return `
+            <button
+                type="button"
+                class="radar-plane"
+                data-flight-id="${flight.id}"
+                aria-label="Select ${escapeHTML(flight.name)}"
+                title="${escapeHTML(flight.name)}"
+                style="left:${x}%; top:${y}%;">
+                ✈
+            </button>
+        `;
+    }).join("");
+
+    if (selectedFlightId !== null) {
+        const selected = activeFlights.find(
+            f => f.id === selectedFlightId
+        );
+
+        if (!selected) {
+            selectedFlightId = null;
+            $("radar-selection").textContent =
+                "Select an aircraft marker to view details.";
+        }
+    }
+}
+
+function renderAll() {
+    renderStats();
+    renderFlightTable();
+    renderLandedTable();
+    renderEvents();
+    renderRadar();
+}
+
+function addFlight(event) {
+    event.preventDefault();
+
+    const nameInput = $("flight-name");
+    const destinationInput = $("destination");
+    const fuelInput = $("fuel");
+    const message = $("message");
+
+    const name = nameInput.value.trim();
+    const destination = destinationInput.value.trim();
+    const fuel = Number(fuelInput.value);
+
+    if (!name || !destination) {
+        message.textContent = "Please enter flight name and destination.";
+        return;
+    }
+
+    if (fuelInput.value.trim() === "" ||
+        !Number.isFinite(fuel) || fuel < 0 || fuel > 100) {
+        message.textContent = "Fuel must be between 0 and 100%.";
+        return;
+    }
+
+    const flight = {
+        id: nextId++,
+        name,
+        destination,
+        fuel,
+        priority: calculatePriority(fuel),
+        status: "Waiting",
+        x: 10 + Math.random() * 80,
+        y: 10 + Math.random() * 80
+    };
+
+    flights.push(flight);
+    selectedFlightId = flight.id;
+
+    saveData();
+    renderAll();
+
+    message.textContent =
+        `${name} added successfully! Priority: ${flight.priority}`;
+
+    addEvent(`Flight ${name} registered for ${destination}.`);
+
+    $("radar-selection").textContent =
+        `${flight.name} | Destination: ${flight.destination} | Fuel: ${flight.fuel}%`;
+
+    event.target.reset();
+    fuelInput.value = 65;
+}
+
+function processNextLanding() {
+    const waitingFlights = flights
+        .filter(f => f.status === "Waiting")
+        .sort((a, b) =>
+            a.priority - b.priority || a.id - b.id
+        );
+
+    if (waitingFlights.length === 0) {
+        addEvent("No waiting flights available for landing.");
+        return;
+    }
+
+    const flight = waitingFlights[0];
+
+    flight.status = "Landed";
+    flight.landedAt = Date.now();
+    selectedFlightId = null;
+
+    saveData();
+    renderAll();
+
+    $("radar-selection").textContent =
+        `${flight.name} has landed at ${flight.destination}.`;
+
+    addEvent(
+        `${flight.name} landed successfully. Fuel: ${flight.fuel}%.`
+    );
+}
+
+function selectRadarFlight(event) {
+    const marker = event.target.closest("[data-flight-id]");
+    if (!marker) return;
+
+    selectedFlightId = Number(marker.dataset.flightId);
+
+    const flight = flights.find(f => f.id === selectedFlightId);
+    if (!flight) return;
+
+    $("radar-selection").textContent =
+        `${flight.name} | Destination: ${flight.destination} | Fuel: ${flight.fuel}% | Priority: ${flight.priority}`;
+}
+
+function moveAircraft() {
+    flights.forEach(flight => {
+        if (flight.status !== "Waiting") return;
+
+        flight.x += (Math.random() - 0.5) * 2;
+        flight.y += (Math.random() - 0.5) * 2;
+
+        flight.x = Math.max(5, Math.min(95, flight.x));
+        flight.y = Math.max(5, Math.min(95, flight.y));
     });
+
+    renderRadar();
+    saveData();
 }
 
-window.setInterval(animateRadar, 100);
-loadFlights();
+document.addEventListener("DOMContentLoaded", () => {
+    initialiseFlights();
 
-// Refresh dashboard data periodically.
-window.setInterval(loadFlights, 5000);
+    $("flight-form").addEventListener("submit", addFlight);
+    $("land-button").addEventListener("click", processNextLanding);
+    $("radar-planes").addEventListener("click", selectRadarFlight);
+
+    renderAll();
+    addEvent("SkyControl is ready. Simulation flights loaded.");
+
+    // Simulated aircraft movement
+    setInterval(moveAircraft, 2500);
+});
