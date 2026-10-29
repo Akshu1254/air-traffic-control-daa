@@ -1,0 +1,803 @@
+/* ==========================================
+   SKYCONTROL - AIR TRAFFIC CONTROL SIMULATOR
+   MCA AI/ML | DAA PROJECT
+   ========================================== */
+
+:root {
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #eaf2ff;
+    background: #07111f;
+    color-scheme: dark;
+    font-synthesis: none;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    min-height: 100%;
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    color: #eaf2ff;
+    background:
+        radial-gradient(
+            circle at 85% 0%,
+            #173456 0,
+            #0b192b 32%,
+            #07111f 72%
+        );
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* ==========================================
+   TOP HEADER
+   ========================================== */
+
+.topbar {
+    width: 100%;
+    min-height: 155px;
+    padding: 26px clamp(20px, 6vw, 90px);
+    background: linear-gradient(115deg, #0b192b, #10253b);
+    border-bottom: 1px solid #29415b;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+
+    position: relative;
+    z-index: 5;
+}
+
+.brand {
+    display: block;
+    min-width: 0;
+}
+
+.eyebrow {
+    margin: 0 0 7px;
+    color: #61d5ff;
+    letter-spacing: 2px;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.topbar h1 {
+    display: block;
+    margin: 0;
+    color: #f2f7ff;
+    font-size: clamp(30px, 4vw, 44px);
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -1px;
+    visibility: visible;
+    opacity: 1;
+}
+
+.topbar h1 span {
+    color: #65d5ff;
+}
+
+.topbar .brand-subtitle {
+    margin: 9px 0 0;
+    color: #a9bfd7;
+    font-size: 13px;
+}
+
+.system-status {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #72edb2;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    border-radius: 50%;
+    background: #72edb2;
+    box-shadow: 0 0 10px #72edb2;
+}
+
+.simulation-tag {
+    color: #72edb2;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+/* ==========================================
+   MAIN CONTAINER
+   ========================================== */
+
+.container {
+    width: 100%;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 30px 24px;
+}
+
+section {
+    min-width: 0;
+}
+
+/* ==========================================
+   STATISTICS CARDS
+   ========================================== */
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.card {
+    min-width: 0;
+    padding: 20px 22px;
+    margin: 0;
+
+    background: linear-gradient(145deg, #12243a, #0e1c2e);
+    border: 1px solid #2b4562;
+    border-radius: 11px;
+
+    box-shadow: 0 5px 18px #00000012;
+    transition: border-color 0.2s, transform 0.2s;
+}
+
+.card:hover {
+    border-color: #3e789f;
+    transform: translateY(-2px);
+}
+
+.card p {
+    margin: 0;
+    color: #a8bdd5;
+    font-size: 12px;
+}
+
+.card h2 {
+    margin: 8px 0 0;
+    color: #65d5ff;
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+/* ==========================================
+   PANELS
+   ========================================== */
+
+.panel {
+    min-width: 0;
+    margin: 0 0 20px;
+    padding: 24px;
+
+    background: linear-gradient(145deg, #112137, #101e30);
+    border: 1px solid #293f59;
+    border-radius: 12px;
+
+    box-shadow: 0 8px 25px #00000014;
+}
+
+.panel > h2 {
+    margin: 0 0 18px;
+    color: #f0f6ff;
+    font-size: 21px;
+    line-height: 1.4;
+}
+
+.panel p {
+    overflow-wrap: anywhere;
+}
+
+.section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.section-heading h2 {
+    margin: 0;
+    color: #f0f6ff;
+    font-size: 21px;
+    line-height: 1.4;
+}
+
+.section-heading .eyebrow {
+    margin-bottom: 5px;
+}
+
+.small-note {
+    color: #9fb2c9;
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+/* ==========================================
+   RADAR LAYOUT
+   ========================================== */
+
+.radar-panel {
+    padding: 25px;
+}
+
+.radar-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
+    align-items: center;
+    gap: 36px;
+}
+
+.radar-screen {
+    position: relative;
+    isolation: isolate;
+    width: 100%;
+    max-width: 430px;
+    aspect-ratio: 1;
+    margin: 0 auto;
+
+    overflow: hidden;
+    border: 1px solid #247b79;
+    border-radius: 50%;
+
+    background-color: #061b27;
+    background-image:
+        linear-gradient(#174047 1px, transparent 1px),
+        linear-gradient(90deg, #174047 1px, transparent 1px);
+    background-size: 10% 10%;
+
+    box-shadow:
+        inset 0 0 35px #00e6a522,
+        0 0 20px #00e6a50b;
+}
+
+.radar-ring {
+    position: absolute;
+    border: 1px solid #24675d;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.ring-one {
+    inset: 15%;
+}
+
+.ring-two {
+    inset: 30%;
+}
+
+.ring-three {
+    inset: 45%;
+}
+
+.radar-cross {
+    position: absolute;
+    background: #24675d;
+    pointer-events: none;
+}
+
+.radar-cross.horizontal {
+    height: 1px;
+    left: 0;
+    right: 0;
+    top: 50%;
+}
+
+.radar-cross.vertical {
+    width: 1px;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+}
+
+.radar-sweep {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: 50%;
+    pointer-events: none;
+
+    background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        transparent 290deg,
+        #00ff9d08 320deg,
+        #00ff9d33 345deg,
+        #00ff9d88 360deg
+    );
+
+    animation: radar-rotate 4s linear infinite;
+}
+
+.radar-center {
+    position: absolute;
+    z-index: 2;
+    left: calc(50% - 3.5px);
+    top: calc(50% - 3.5px);
+    width: 7px;
+    height: 7px;
+
+    background: #65ffd0;
+    border-radius: 50%;
+    box-shadow: 0 0 12px #65ffd0;
+}
+
+#radar-planes {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    overflow: hidden;
+    border-radius: 50%;
+}
+
+.radar-plane {
+    position: absolute;
+    z-index: 4;
+    transform: translate(-50%, -50%);
+
+    border: 0;
+    border-radius: 50%;
+    padding: 4px;
+
+    background: transparent;
+    color: #77ffca;
+    font-size: 17px;
+    line-height: 1.2;
+
+    cursor: pointer;
+    text-shadow: 0 0 8px #00ffad;
+}
+
+.radar-plane:hover {
+    color: #ffffff;
+    background: #ffffff12;
+}
+
+.radar-plane:focus-visible {
+    outline: 2px solid #65d5ff;
+    outline-offset: 2px;
+}
+
+.radar-info {
+    min-width: 0;
+}
+
+.radar-info h3 {
+    margin: 0 0 12px;
+    color: #f2f7ff;
+    font-size: 17px;
+}
+
+#radar-selection {
+    min-height: 42px;
+    margin: 0 0 12px;
+    color: #d2e1f1;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.radar-stat {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+
+    border-bottom: 1px solid #293c52;
+    font-size: 12px;
+}
+
+.radar-stat span {
+    color: #9fb2c9;
+}
+
+.radar-stat strong {
+    color: #65d5ff;
+    text-align: right;
+}
+
+.radar-info .small-note {
+    margin-top: 15px;
+}
+
+/* ==========================================
+   FORM AND INPUTS
+   ========================================== */
+
+#flight-form {
+    width: 100%;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 16px;
+}
+
+.form-grid > div {
+    min-width: 0;
+}
+
+label {
+    display: block;
+    margin: 12px 0 7px;
+    color: #c5d5e8;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+input,
+select,
+textarea {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 43px;
+    padding: 11px 12px;
+
+    color: #f2f7ff;
+    background: #091626;
+    border: 1px solid #354d68;
+    border-radius: 7px;
+
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: #7188a2;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: #53cfff;
+    box-shadow: 0 0 0 3px #53cfff16;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 1px solid #53cfff;
+    outline-offset: 1px;
+}
+
+/* ==========================================
+   BUTTONS
+   ========================================== */
+
+button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+
+    min-height: 40px;
+    padding: 10px 16px;
+    margin-top: 16px;
+
+    border: 1px solid transparent;
+    border-radius: 7px;
+
+    background: #1788d4;
+    color: #ffffff;
+
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+
+    cursor: pointer;
+    transition:
+        background 0.2s,
+        border-color 0.2s,
+        transform 0.2s;
+}
+
+button:hover {
+    filter: brightness(1.12);
+}
+
+button:active {
+    transform: translateY(1px);
+}
+
+button:focus-visible {
+    outline: 2px solid #65d5ff;
+    outline-offset: 3px;
+}
+
+button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.danger {
+    margin-top: 0;
+    background: #d94c61;
+}
+
+#message {
+    min-height: 0;
+    margin: 10px 0 0;
+    color: #72edb2;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+/* ==========================================
+   TABLES
+   ========================================== */
+
+.table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    margin-top: 12px;
+
+    border: 1px solid #293f59;
+    border-radius: 8px;
+
+    scrollbar-width: thin;
+    scrollbar-color: #385775 #0b192b;
+}
+
+table {
+    width: 100%;
+    min-width: 580px;
+    border-collapse: collapse;
+    background: #0c1a2a;
+}
+
+thead {
+    background: #14283e;
+}
+
+th,
+td {
+    padding: 13px 12px;
+    text-align: left;
+    vertical-align: middle;
+    border-bottom: 1px solid #293c52;
+}
+
+th {
+    color: #68d5ff;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+}
+
+td {
+    color: #d7e4f3;
+    font-size: 12px;
+}
+
+tbody tr {
+    transition: background 0.15s;
+}
+
+tbody tr:hover {
+    background: #15283d;
+}
+
+tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+td[colspan] {
+    padding: 20px 12px;
+    color: #9fb2c9;
+    text-align: center;
+}
+
+/* ==========================================
+   SYSTEM ACTIVITY
+   ========================================== */
+
+#event-list {
+    margin: 0;
+    padding-left: 22px;
+    color: #c2d2e5;
+}
+
+#event-list li {
+    padding: 8px 5px;
+    border-bottom: 1px solid #24384e;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+#event-list li:last-child {
+    border-bottom: 0;
+}
+
+/* ==========================================
+   ALGORITHM COMPLEXITY
+   ========================================== */
+
+.complexity {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.complexity span {
+    display: inline-block;
+    padding: 10px 13px;
+
+    background: #0a2a39;
+    border: 1px solid #174554;
+    border-radius: 6px;
+
+    color: #70e6d0;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* ==========================================
+   FOOTER
+   ========================================== */
+
+footer {
+    padding: 24px 10px;
+    text-align: center;
+    color: #8da3bc;
+    font-size: 12px;
+}
+
+footer p {
+    margin: 4px 0;
+}
+
+/* ==========================================
+   RADAR ANIMATION
+   ========================================== */
+
+@keyframes radar-rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ==========================================
+   RESPONSIVE DESIGN
+   ========================================== */
+
+@media (min-width: 1400px) {
+    .container {
+        max-width: 1320px;
+    }
+}
+
+@media (max-width: 800px) {
+    .topbar {
+        padding: 24px;
+    }
+
+    .container {
+        padding: 22px 16px;
+    }
+
+    .radar-layout {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 24px;
+    }
+
+    .radar-screen {
+        max-width: 380px;
+    }
+
+    .radar-info {
+        width: 100%;
+    }
+}
+
+@media (max-width: 600px) {
+    .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 16px;
+        padding: 22px 18px;
+    }
+
+    .topbar h1 {
+        font-size: 32px;
+    }
+
+    .topbar .brand-subtitle {
+        font-size: 12px;
+    }
+
+    .container {
+        padding: 18px 12px;
+    }
+
+    .stats {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .card {
+        padding: 16px 18px;
+    }
+
+    .card h2 {
+        font-size: 26px;
+    }
+
+    .panel,
+    .radar-panel {
+        padding: 17px;
+        margin-bottom: 15px;
+    }
+
+    .panel > h2,
+    .section-heading h2 {
+        font-size: 18px;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 5px;
+    }
+
+    .radar-screen {
+        max-width: 340px;
+    }
+
+    .section-heading {
+        align-items: flex-start;
+    }
+
+    .danger {
+        max-width: 100%;
+    }
+
+    .complexity {
+        flex-direction: column;
+    }
+
+    .complexity span {
+        width: 100%;
+    }
+}
+
+/* Respect reduced-motion settings */
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

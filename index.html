@@ -1,8 +1,252 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SKYWARD | Air Traffic Control DAA</title><link rel="stylesheet" href="styles.css"></head>
-<body><header><a class="brand" href="#">◉ SKYWARD <small>DAA · ATC SIMULATOR</small></a><div class="live"><i></i> SIMULATION LIVE <span id="clock">00:00</span></div><button id="pause">Ⅱ PAUSE</button></header>
-<main><section class="intro"><div><div class="eyebrow">ALGORITHM VISUALIZATION · AIRSPACE MONITORING</div><h1>Air Traffic <em>Control</em></h1><p>Track aircraft, predict closest approach, and prioritize collision alerts.</p></div><button class="add" id="add">＋ ADD AIRCRAFT</button></section>
-<section class="dashboard"><article class="panel radar-panel"><div class="panel-head">◉ &nbsp; LIVE RADAR <small>· SECTOR 7A</small><span class="legend">● AIRCRAFT &nbsp; <b>● CONFLICT</b></span></div><div class="radar-wrap"><canvas id="radar" aria-label="Radar simulation"></canvas><span class="north">N</span><span class="east">E</span><span class="south">S</span><span class="west">W</span></div><div class="radar-foot">RADAR ACTIVE <span>RANGE 120 NM</span><span>SECTOR 7A / NORTH</span></div></article>
-<aside><div class="stats"><article class="panel stat">TRACKED AIRCRAFT<strong id="count">00</strong><small>IN CURRENT SECTOR</small></article><article class="panel stat">ACTIVE CONFLICTS<strong class="amber" id="conflict-count">00</strong><small>UNDER 5 NM CPA</small></article></div><article class="panel algorithm"><div class="panel-head">ALGORITHM STATUS <span>O(n²)</span></div><h2>Closest Point of Approach</h2><p>Calculates minimum separation using relative position and velocity.</p><code>t* = −(r · v) / |v|²<br>d<sub>min</sub> = |r + vt*|</code><div class="meta">PAIRS CHECKED <b id="pairs">0</b></div><div class="meta">SEPARATION THRESHOLD <b>5.0 NM</b></div></article><article class="panel queue"><div class="panel-head">PRIORITY QUEUE <span id="alerts">0 ALERTS</span></div><div id="queue" class="empty">No active conflicts.<br>Airspace is clear.</div></article></aside></section>
-<article class="panel tracks"><div class="panel-head">AIRCRAFT TRACKS <small>· SORTED BY PRIORITY</small><button id="reset">↻ RESET SIMULATION</button></div><div class="scroll"><table><thead><tr><th>CALLSIGN</th><th>ALTITUDE</th><th>HEADING</th><th>SPEED</th><th>STATUS</th><th>CPA / TIME</th></tr></thead><tbody id="rows"></tbody></table></div></article>
-<footer>SKYWARD · DAA ALGORITHM PROJECT <span>EDUCATIONAL SIMULATION ONLY · NOT FOR OPERATIONAL ATC</span></footer></main><div id="toast" role="status"></div><script src="app.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>SkyControl | Air Traffic Control</title>
+    <meta name="description" content="SkyControl - Air Traffic Control and Priority Landing Simulation, an academic Design and Analysis of Algorithms project.">
+    <meta name="theme-color" content="#081321">
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<header class="topbar">
+    <div class="brand">
+        <p class="eyebrow">MCA AI/ML • DAA PROJECT</p>
+
+        <h1>Sky<span>Control</span></h1>
+
+        <p class="brand-subtitle">
+            Air Traffic Control &amp; Priority Landing Simulation
+        </p>
+    </div>
+
+    <div class="system-status">
+        <span class="live-dot"></span>
+        SYSTEM ONLINE
+    </div>
+</header>
+
+<main class="container">
+
+    <!-- Flight Statistics -->
+    <section class="stats">
+        <article class="card">
+            <p>Total Flights</p>
+            <h2 id="total-flights">0</h2>
+        </article>
+
+        <article class="card">
+            <p>Waiting</p>
+            <h2 id="waiting-flights">0</h2>
+        </article>
+
+        <article class="card">
+            <p>Landed</p>
+            <h2 id="landed-flights">0</h2>
+        </article>
+    </section>
+
+    <!-- Animated Radar -->
+    <section class="panel radar-panel">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">SURVEILLANCE SYSTEM</p>
+                <h2>Animated Radar</h2>
+            </div>
+
+            <span class="simulation-tag">
+                <span class="live-dot"></span>
+                SIMULATION ACTIVE
+            </span>
+        </div>
+
+        <div class="radar-layout">
+            <div class="radar-screen" id="radar-screen">
+                <div class="radar-ring ring-one"></div>
+                <div class="radar-ring ring-two"></div>
+                <div class="radar-ring ring-three"></div>
+
+                <div class="radar-cross horizontal"></div>
+                <div class="radar-cross vertical"></div>
+
+                <div class="radar-sweep"></div>
+                <div class="radar-center"></div>
+
+                <div id="radar-planes"></div>
+            </div>
+
+            <div class="radar-info">
+                <h3>Selected Aircraft</h3>
+
+                <p id="radar-selection">
+                    Select an aircraft marker to view details.
+                </p>
+
+                <div class="radar-stat">
+                    <span>Tracked aircraft</span>
+                    <strong id="radar-count">0</strong>
+                </div>
+
+                <div class="radar-stat">
+                    <span>Tracking mode</span>
+                    <strong>SIMULATED</strong>
+                </div>
+
+                <p class="small-note">
+                    Radar positions and speeds are illustrative only.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Register New Flight -->
+    <section class="panel">
+        <h2>Register New Flight</h2>
+
+        <form id="flight-form">
+            <div class="form-grid">
+                <div>
+                    <label for="flight-name">Flight name / number</label>
+                    <input
+                        id="flight-name"
+                        name="flight_name"
+                        type="text"
+                        placeholder="Example: Air India AI101"
+                        required
+                    >
+                </div>
+
+                <div>
+                    <label for="destination">Destination</label>
+                    <input
+                        id="destination"
+                        name="destination"
+                        type="text"
+                        placeholder="Example: Delhi"
+                        required
+                    >
+                </div>
+
+                <div>
+                    <label for="fuel">Remaining fuel (%)</label>
+                    <input
+                        id="fuel"
+                        name="fuel"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value="65"
+                        required
+                    >
+                </div>
+            </div>
+
+            <button type="submit">+ Add Flight</button>
+        </form>
+
+        <p id="message" role="status" aria-live="polite"></p>
+    </section>
+
+    <!-- Landing Queue -->
+    <section class="panel">
+        <div class="section-heading">
+            <h2>Landing Queue</h2>
+
+            <button id="land-button" class="danger" type="button">
+                Process Next Landing →
+            </button>
+        </div>
+
+        <p class="small-note">
+            Lower priority number is processed first. Fuel-based priority
+            is part of this academic simulation.
+        </p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Flight ID</th>
+                        <th>Flight</th>
+                        <th>Destination</th>
+                        <th>Fuel</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody id="flight-table">
+                    <tr>
+                        <td colspan="6">Loading flights...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Recent Landings -->
+    <section class="panel">
+        <h2>Recent Landings</h2>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Flight ID</th>
+                        <th>Flight</th>
+                        <th>Destination</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody id="landed-table">
+                    <tr>
+                        <td colspan="4">No landings yet.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- System Activity -->
+    <section class="panel">
+        <h2>System Activity</h2>
+
+        <ul id="event-list">
+            <li>Waiting for events...</li>
+        </ul>
+    </section>
+
+    <!-- Algorithm Information -->
+    <section class="panel">
+        <h2>About the DAA Algorithm</h2>
+
+        <p>
+            This project uses a min-heap priority queue to organise
+            simulated landing requests. Flights are processed according
+            to the priority calculated by the application.
+        </p>
+
+        <div class="complexity">
+            <span>Heap insertion: O(log n)</span>
+            <span>Heap removal: O(log n)</span>
+            <span>View sorted queue: O(n log n)</span>
+        </div>
+    </section>
+
+    <footer>
+        <p>SkyControl • Academic DAA Project</p>
+        <p>Simulation only — Not for real aviation use.</p>
+    </footer>
+
+</main>
+
+<script src="{{ url_for('static', filename='script.js') }}" defer></script>
+
+</body>
+</html>
