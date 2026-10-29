@@ -8,8 +8,8 @@
     <meta name="description" content="SkyControl - Air Traffic Control and Priority Landing Simulation, an academic Design and Analysis of Algorithms project.">
     <meta name="theme-color" content="#081321">
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
+    <!-- CSS: Works on GitHub Pages and Flask -->
+    <link rel="stylesheet" href="./style.css">
 </head>
 
 <body>
@@ -110,6 +110,7 @@
 
         <form id="flight-form">
             <div class="form-grid">
+
                 <div>
                     <label for="flight-name">Flight name / number</label>
                     <input
@@ -144,6 +145,7 @@
                         required
                     >
                 </div>
+
             </div>
 
             <button type="submit">+ Add Flight</button>
@@ -246,7 +248,8 @@
 
 </main>
 
-<script src="{{ url_for('static', filename='script.js') }}" defer></script>
+<!-- JavaScript -->
+<script src="./script.js" defer></script>
 
 </body>
 </html>
