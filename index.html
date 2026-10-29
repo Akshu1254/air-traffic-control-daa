@@ -1,243 +1,373 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkyControl | Air Traffic Control</title>
+<meta name="description" content="SkyControl Air Traffic Control and Priority Landing Simulation - MCA AI/ML DAA Project">
+<meta name="theme-color" content="#081321">
 
-    <title>SkyControl | Air Traffic Control</title>
-    <meta name="description" content="SkyControl - Air Traffic Control and Priority Landing Simulation, an academic Design and Analysis of Algorithms project.">
-    <meta name="theme-color" content="#081321">
-
-    <!-- CSS: Works on GitHub Pages and Flask -->
-    <link rel="stylesheet" href="./style.css">
+<style>
+:root {
+    --bg: #07111f;
+    --panel: #101f32;
+    --panel2: #14263c;
+    --border: #29435e;
+    --text: #e7f2ff;
+    --muted: #91a9c3;
+    --cyan: #42d9ff;
+    --green: #37f2b0;
+    --red: #ff627b;
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
+    color: var(--text);
+    background: radial-gradient(ellipse at top, #102a43, var(--bg) 65%);
+    min-height: 100vh;
+}
+.topbar {
+    padding: 22px 6%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    background: rgba(12, 30, 49, .96);
+    border-bottom: 1px solid var(--border);
+}
+.eyebrow {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--cyan);
+    font-weight: 800;
+    margin: 0 0 7px;
+}
+.brand h1 {
+    margin: 0;
+    font-size: 32px;
+    letter-spacing: -1px;
+}
+.brand h1 span { color: var(--cyan); }
+.brand-subtitle {
+    color: var(--muted);
+    margin: 7px 0 0;
+    font-size: 13px;
+}
+.system-status, .simulation-tag {
+    color: var(--green);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+.live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    margin-right: 7px;
+    box-shadow: 0 0 12px var(--green);
+}
+.container {
+    width: min(1180px, 92%);
+    margin: 28px auto;
+}
+.stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.card, .panel {
+    background: linear-gradient(145deg, var(--panel), #0c1929);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 12px 35px #0002;
+}
+.card { padding: 20px 22px; }
+.card p { color: var(--muted); margin: 0; font-size: 13px; }
+.card h2 { color: var(--cyan); font-size: 30px; margin: 10px 0 0; }
+.panel { padding: 22px; margin-bottom: 20px; }
+h2, h3 { margin-top: 0; }
+.panel > h2, .section-heading h2 { font-size: 19px; margin-bottom: 18px; }
+.section-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.section-heading .eyebrow { margin-bottom: 5px; }
+.radar-layout {
+    display: grid;
+    grid-template-columns: minmax(240px, 1.1fr) minmax(220px, .9fr);
+    gap: 30px;
+    align-items: center;
+}
+.radar-screen {
+    position: relative;
+    width: min(100%, 430px);
+    aspect-ratio: 1;
+    margin: 5px auto;
+    overflow: hidden;
+    border: 1px solid #167c70;
+    border-radius: 50%;
+    background:
+        linear-gradient(90deg, transparent 49.8%, #187569 50%, transparent 50.3%),
+        linear-gradient(transparent 49.8%, #187569 50%, transparent 50.3%),
+        repeating-radial-gradient(circle, transparent 0 17%, #17645b 17.3% 17.7%, transparent 18% 25%),
+        radial-gradient(circle, #0b342f, #071b27);
+}
+.radar-sweep {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent 0deg, #26f4bd09 270deg, #26f4bd8c 320deg, transparent 325deg);
+    animation: sweep 5s linear infinite;
+}
+@keyframes sweep { to { transform: rotate(360deg); } }
+.radar-center {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 9px; height: 9px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 15px var(--green);
+}
+.radar-plane {
+    position: absolute;
+    z-index: 2;
+    transform: translate(-50%, -50%);
+    width: 30px; height: 30px;
+    border: 1px solid var(--cyan);
+    border-radius: 50%;
+    color: var(--cyan);
+    background: #07302d;
+    cursor: pointer;
+    transition: left 2.5s linear, top 2.5s linear;
+}
+.radar-plane:hover { background: #15534b; }
+.radar-info {
+    padding: 20px;
+    background: #0b1929;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+.radar-info h3 { font-size: 16px; }
+.radar-info p { color: var(--muted); font-size: 13px; line-height: 1.7; }
+.radar-stat {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+.radar-stat span, .small-note { color: var(--muted); }
+.radar-stat strong { color: var(--cyan); }
+.small-note { font-size: 12px; line-height: 1.7; }
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: #c3d5e9;
+}
+input {
+    width: 100%;
+    min-width: 0;
+    padding: 12px;
+    color: white;
+    background: #081522;
+    border: 1px solid #365574;
+    border-radius: 7px;
+    outline: none;
+}
+input:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px #42d9ff20; }
+button {
+    border: 0;
+    padding: 11px 16px;
+    margin-top: 16px;
+    border-radius: 7px;
+    background: var(--cyan);
+    color: #04121e;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform .15s, opacity .15s;
+}
+button:hover { opacity: .88; transform: translateY(-1px); }
+button.danger { background: var(--red); color: #fff; margin-top: 0; }
+#message { color: var(--green); font-size: 13px; min-height: 18px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 620px; }
+th, td {
+    padding: 13px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+th {
+    background: #162b41;
+    color: var(--cyan);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+}
+td { color: #d4e3f3; }
+tbody tr:hover { background: #ffffff06; }
+.status-waiting { color: #ffcf70; font-weight: 700; }
+.status-landed { color: var(--green); font-weight: 700; }
+#event-list { padding-left: 22px; }
+#event-list li {
+    color: #b8cee3;
+    padding: 8px 0;
+    border-bottom: 1px solid #20374e;
+    font-size: 13px;
+}
+.complexity {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+}
+.complexity span {
+    padding: 10px 13px;
+    border: 1px solid #176d68;
+    border-radius: 7px;
+    color: var(--green);
+    font-size: 12px;
+}
+footer {
+    padding: 25px 10px;
+    color: var(--muted);
+    text-align: center;
+    font-size: 12px;
+}
+footer p { margin: 6px; }
+@media (max-width: 700px) {
+    .topbar { padding: 18px 5%; align-items: flex-start; flex-direction: column; }
+    .brand h1 { font-size: 28px; }
+    .stats { gap: 8px; }
+    .card { padding: 15px 10px; }
+    .card p { font-size: 11px; }
+    .card h2 { font-size: 24px; }
+    .panel { padding: 16px; }
+    .radar-layout, .form-grid { grid-template-columns: 1fr; }
+    .radar-screen { width: min(100%, 350px); }
+    .section-heading { align-items: flex-start; }
+}
+</style>
 </head>
 
 <body>
-
 <header class="topbar">
     <div class="brand">
         <p class="eyebrow">MCA AI/ML • DAA PROJECT</p>
-
         <h1>Sky<span>Control</span></h1>
-
-        <p class="brand-subtitle">
-            Air Traffic Control &amp; Priority Landing Simulation
-        </p>
+        <p class="brand-subtitle">Air Traffic Control &amp; Priority Landing Simulation</p>
     </div>
-
-    <div class="system-status">
-        <span class="live-dot"></span>
-        SYSTEM ONLINE
-    </div>
+    <div class="system-status"><span class="live-dot"></span>SYSTEM ONLINE</div>
 </header>
 
 <main class="container">
 
-    <!-- Flight Statistics -->
     <section class="stats">
-        <article class="card">
-            <p>Total Flights</p>
-            <h2 id="total-flights">0</h2>
-        </article>
-
-        <article class="card">
-            <p>Waiting</p>
-            <h2 id="waiting-flights">0</h2>
-        </article>
-
-        <article class="card">
-            <p>Landed</p>
-            <h2 id="landed-flights">0</h2>
-        </article>
+        <article class="card"><p>Total Flights</p><h2 id="total-flights">0</h2></article>
+        <article class="card"><p>Waiting</p><h2 id="waiting-flights">0</h2></article>
+        <article class="card"><p>Landed</p><h2 id="landed-flights">0</h2></article>
     </section>
 
-    <!-- Animated Radar -->
-    <section class="panel radar-panel">
+    <section class="panel">
         <div class="section-heading">
             <div>
                 <p class="eyebrow">SURVEILLANCE SYSTEM</p>
                 <h2>Animated Radar</h2>
             </div>
-
-            <span class="simulation-tag">
-                <span class="live-dot"></span>
-                SIMULATION ACTIVE
-            </span>
+            <span class="simulation-tag"><span class="live-dot"></span>SIMULATION ACTIVE</span>
         </div>
-
         <div class="radar-layout">
             <div class="radar-screen" id="radar-screen">
-                <div class="radar-ring ring-one"></div>
-                <div class="radar-ring ring-two"></div>
-                <div class="radar-ring ring-three"></div>
-
-                <div class="radar-cross horizontal"></div>
-                <div class="radar-cross vertical"></div>
-
                 <div class="radar-sweep"></div>
                 <div class="radar-center"></div>
-
                 <div id="radar-planes"></div>
             </div>
-
             <div class="radar-info">
                 <h3>Selected Aircraft</h3>
-
-                <p id="radar-selection">
-                    Select an aircraft marker to view details.
-                </p>
-
-                <div class="radar-stat">
-                    <span>Tracked aircraft</span>
-                    <strong id="radar-count">0</strong>
-                </div>
-
-                <div class="radar-stat">
-                    <span>Tracking mode</span>
-                    <strong>SIMULATED</strong>
-                </div>
-
-                <p class="small-note">
-                    Radar positions and speeds are illustrative only.
-                </p>
+                <p id="radar-selection">Select an aircraft marker to view details.</p>
+                <div class="radar-stat"><span>Tracked aircraft</span><strong id="radar-count">0</strong></div>
+                <div class="radar-stat"><span>Tracking mode</span><strong>SIMULATED</strong></div>
+                <p class="small-note">Radar positions and speeds are illustrative only.</p>
             </div>
         </div>
     </section>
 
-    <!-- Register New Flight -->
     <section class="panel">
         <h2>Register New Flight</h2>
-
         <form id="flight-form">
             <div class="form-grid">
-
                 <div>
                     <label for="flight-name">Flight name / number</label>
-                    <input
-                        id="flight-name"
-                        name="flight_name"
-                        type="text"
-                        placeholder="Example: Air India AI101"
-                        required
-                    >
+                    <input id="flight-name" name="flight_name" placeholder="Example: Air India AI101" required maxlength="60">
                 </div>
-
                 <div>
                     <label for="destination">Destination</label>
-                    <input
-                        id="destination"
-                        name="destination"
-                        type="text"
-                        placeholder="Example: Delhi"
-                        required
-                    >
+                    <input id="destination" name="destination" placeholder="Example: Delhi" required maxlength="60">
                 </div>
-
                 <div>
                     <label for="fuel">Remaining fuel (%)</label>
-                    <input
-                        id="fuel"
-                        name="fuel"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value="65"
-                        required
-                    >
+                    <input id="fuel" name="fuel" type="number" min="0" max="100" value="65" required>
                 </div>
-
             </div>
-
             <button type="submit">+ Add Flight</button>
         </form>
-
         <p id="message" role="status" aria-live="polite"></p>
     </section>
 
-    <!-- Landing Queue -->
     <section class="panel">
         <div class="section-heading">
             <h2>Landing Queue</h2>
-
-            <button id="land-button" class="danger" type="button">
-                Process Next Landing →
-            </button>
+            <button id="land-button" class="danger" type="button">Process Next Landing →</button>
         </div>
-
-        <p class="small-note">
-            Lower priority number is processed first. Fuel-based priority
-            is part of this academic simulation.
-        </p>
-
+        <p class="small-note">Lower priority number is processed first. Fuel-based priority is for this academic simulation only.</p>
         <div class="table-wrap">
             <table>
-                <thead>
-                    <tr>
-                        <th>Flight ID</th>
-                        <th>Flight</th>
-                        <th>Destination</th>
-                        <th>Fuel</th>
-                        <th>Priority</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-
-                <tbody id="flight-table">
-                    <tr>
-                        <td colspan="6">Loading flights...</td>
-                    </tr>
-                </tbody>
+                <thead><tr>
+                    <th>Flight ID</th><th>Flight</th><th>Destination</th>
+                    <th>Fuel</th><th>Priority</th><th>Status</th>
+                </tr></thead>
+                <tbody id="flight-table"></tbody>
             </table>
         </div>
     </section>
 
-    <!-- Recent Landings -->
     <section class="panel">
         <h2>Recent Landings</h2>
-
         <div class="table-wrap">
             <table>
-                <thead>
-                    <tr>
-                        <th>Flight ID</th>
-                        <th>Flight</th>
-                        <th>Destination</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-
-                <tbody id="landed-table">
-                    <tr>
-                        <td colspan="4">No landings yet.</td>
-                    </tr>
-                </tbody>
+                <thead><tr><th>Flight ID</th><th>Flight</th><th>Destination</th><th>Status</th></tr></thead>
+                <tbody id="landed-table"></tbody>
             </table>
         </div>
     </section>
 
-    <!-- System Activity -->
     <section class="panel">
         <h2>System Activity</h2>
-
-        <ul id="event-list">
-            <li>Waiting for events...</li>
-        </ul>
+        <ul id="event-list"></ul>
     </section>
 
-    <!-- Algorithm Information -->
     <section class="panel">
         <h2>About the DAA Algorithm</h2>
-
-        <p>
-            This project uses a min-heap priority queue to organise
-            simulated landing requests. Flights are processed according
-            to the priority calculated by the application.
-        </p>
-
+        <p class="small-note">This project demonstrates priority-based landing scheduling using a min-heap concept. The simulation processes the waiting flight with the lowest priority number first.</p>
         <div class="complexity">
             <span>Heap insertion: O(log n)</span>
             <span>Heap removal: O(log n)</span>
-            <span>View sorted queue: O(n log n)</span>
+            <span>Sorting queue: O(n log n)</span>
         </div>
     </section>
 
@@ -245,11 +375,225 @@
         <p>SkyControl • Academic DAA Project</p>
         <p>Simulation only — Not for real aviation use.</p>
     </footer>
-
 </main>
 
-<!-- JavaScript -->
-<script src="./script.js" defer></script>
+<script>
+(() => {
+    "use strict";
 
+    const $ = id => document.getElementById(id);
+    const STORAGE_KEY = "skycontrol_full_html_v1";
+    const EVENT_KEY = "skycontrol_full_events_v1";
+
+    const demoFlights = [
+        {name:"Air India AI101", destination:"Delhi", fuel:65},
+        {name:"IndiGo 6E202", destination:"Mumbai", fuel:25},
+        {name:"SpiceJet SG303", destination:"Chandigarh", fuel:48},
+        {name:"Vistara UK404", destination:"Bengaluru", fuel:80},
+        {name:"IndiGo 6E505", destination:"Amritsar", fuel:15}
+    ];
+
+    let flights = [];
+    let events = [];
+    let nextId = 1;
+
+    const getPriority = fuel => 101 - Number(fuel);
+
+    function safeText(value) {
+        return String(value).replace(/[&<>"']/g, c => ({
+            "&":"&amp;", "<":"&lt;", ">":"&gt;",
+            '"':"&quot;", "'":"&#39;"
+        })[c]);
+    }
+
+    function saveData() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(flights));
+            localStorage.setItem(EVENT_KEY, JSON.stringify(events));
+        } catch (error) {
+            console.warn("Could not save data in this browser.", error);
+        }
+    }
+
+    function addEvent(message) {
+        events.unshift(new Date().toLocaleTimeString() + " — " + message);
+        events = events.slice(0, 20);
+        saveData();
+        renderEvents();
+    }
+
+    function loadData() {
+        try {
+            const savedFlights = localStorage.getItem(STORAGE_KEY);
+            const savedEvents = localStorage.getItem(EVENT_KEY);
+
+            if (savedFlights !== null) {
+                const parsed = JSON.parse(savedFlights);
+                if (!Array.isArray(parsed)) throw new Error("Invalid flights");
+                flights = parsed;
+            } else {
+                flights = demoFlights.map((f, i) => ({
+                    ...f,
+                    id: i + 1,
+                    priority: getPriority(f.fuel),
+                    status: "Waiting",
+                    x: 10 + Math.random() * 80,
+                    y: 10 + Math.random() * 80
+                }));
+            }
+
+            events = savedEvents ? JSON.parse(savedEvents) : [];
+            if (!Array.isArray(events)) events = [];
+        } catch (error) {
+            flights = demoFlights.map((f, i) => ({
+                ...f, id:i + 1,
+                priority:getPriority(f.fuel),
+                status:"Waiting",
+                x:10 + Math.random() * 80,
+                y:10 + Math.random() * 80
+            }));
+            events = [];
+        }
+
+        flights = flights.filter(f =>
+            f && Number.isFinite(Number(f.id)) &&
+            typeof f.name === "string" &&
+            typeof f.destination === "string" &&
+            Number.isFinite(Number(f.fuel)) &&
+            (f.status === "Waiting" || f.status === "Landed")
+        );
+
+        nextId = flights.reduce((max, f) => Math.max(max, Number(f.id)), 0) + 1;
+        saveData();
+    }
+
+    function renderEvents() {
+        $("event-list").innerHTML = events.length
+            ? events.slice(0, 12).map(e => `<li>${safeText(e)}</li>`).join("")
+            : "<li>System ready.</li>";
+    }
+
+    function render() {
+        const waiting = flights.filter(f => f.status === "Waiting")
+            .sort((a,b) => a.priority - b.priority || a.id - b.id);
+        const landed = flights.filter(f => f.status === "Landed")
+            .sort((a,b) => (b.landedAt || 0) - (a.landedAt || 0));
+
+        $("total-flights").textContent = flights.length;
+        $("waiting-flights").textContent = waiting.length;
+        $("landed-flights").textContent = landed.length;
+        $("radar-count").textContent = waiting.length;
+
+        $("flight-table").innerHTML = waiting.length ? waiting.map(f => `
+            <tr>
+                <td>#${f.id}</td>
+                <td>${safeText(f.name)}</td>
+                <td>${safeText(f.destination)}</td>
+                <td>${f.fuel}%</td>
+                <td>${f.priority}</td>
+                <td><span class="status-waiting">Waiting</span></td>
+            </tr>
+        `).join("") : '<tr><td colspan="6">No flights waiting for landing.</td></tr>';
+
+        $("landed-table").innerHTML = landed.length ? landed.slice(0,10).map(f => `
+            <tr>
+                <td>#${f.id}</td>
+                <td>${safeText(f.name)}</td>
+                <td>${safeText(f.destination)}</td>
+                <td><span class="status-landed">Landed</span></td>
+            </tr>
+        `).join("") : '<tr><td colspan="4">No landings yet.</td></tr>';
+
+        $("radar-planes").innerHTML = waiting.map(f => `
+            <button class="radar-plane" type="button"
+                data-plane="${f.id}"
+                aria-label="View ${safeText(f.name)}"
+                title="${safeText(f.name)}"
+                style="left:${f.x}%;top:${f.y}%;margin:0">
+                ✈
+            </button>
+        `).join("");
+
+        renderEvents();
+        saveData();
+    }
+
+    $("flight-form").addEventListener("submit", function(event) {
+        event.preventDefault();
+
+        const name = $("flight-name").value.trim();
+        const destination = $("destination").value.trim();
+        const rawFuel = $("fuel").value;
+        const fuel = Number(rawFuel);
+
+        if (!name || !destination || rawFuel === "" ||
+            !Number.isFinite(fuel) || fuel < 0 || fuel > 100) {
+            $("message").textContent = "Enter a flight, destination and fuel from 0 to 100%.";
+            return;
+        }
+
+        const flight = {
+            id:nextId++,
+            name,
+            destination,
+            fuel,
+            priority:getPriority(fuel),
+            status:"Waiting",
+            x:10 + Math.random() * 80,
+            y:10 + Math.random() * 80
+        };
+
+        flights.push(flight);
+        $("message").textContent = flight.name + " added successfully!";
+        this.reset();
+        $("fuel").value = 65;
+        render();
+        addEvent("Flight added: " + flight.name + " → " + flight.destination);
+    });
+
+    $("land-button").addEventListener("click", function() {
+        const next = flights.filter(f => f.status === "Waiting")
+            .sort((a,b) => a.priority - b.priority || a.id - b.id)[0];
+
+        if (!next) {
+            addEvent("No waiting flights available.");
+            return;
+        }
+
+        next.status = "Landed";
+        next.landedAt = Date.now();
+
+        $("radar-selection").textContent =
+            next.name + " has landed at " + next.destination + ".";
+
+        render();
+        addEvent(next.name + " landed successfully. Fuel: " + next.fuel + "%.");
+    });
+
+    $("radar-planes").addEventListener("click", function(event) {
+        const marker = event.target.closest("[data-plane]");
+        if (!marker) return;
+
+        const flight = flights.find(f => f.id === Number(marker.dataset.plane));
+        if (!flight) return;
+
+        $("radar-selection").textContent =
+            flight.name + " | Destination: " + flight.destination +
+            " | Fuel: " + flight.fuel + "% | Priority: " + flight.priority;
+    });
+
+    loadData();
+    render();
+    addEvent("SkyControl initialized. Demo flights loaded.");
+
+    setInterval(() => {
+        flights.filter(f => f.status === "Waiting").forEach(f => {
+            f.x = Math.max(5, Math.min(95, f.x + (Math.random() - .5) * 3));
+            f.y = Math.max(5, Math.min(95, f.y + (Math.random() - .5) * 3));
+        });
+        render();
+    }, 2500);
+})();
+</script>
 </body>
 </html>
